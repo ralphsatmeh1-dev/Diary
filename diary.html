@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Diary</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 12px;
+      font-size: 14px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      resize: none;
+      box-sizing: border-box;
+      transition: background 0.3s, color 0.3s, font-family 0.3s, font-style 0.3s, font-weight 0.3s;
+    }
+    button, select, input[type="color"] {
+      margin: 5px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #entries {
+      margin-top: 20px;
+    }
+    .entry {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      transition: background 0.3s, color 0.3s, font-family 0.3s, box-shadow 0.3s, font-style 0.3s, font-weight 0.3s;
+    }
+    .date {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-bottom: 5px;
+    }
+
+    /* Diary Themes */
+    body.light {
+      background: #fdf6e3;
+      color: #333;
+    }
+    body.light textarea, body.light .entry {
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+    body.light button, body.light select {
+      background: #4caf50;
+      color: white;
+    }
+
+    body.dark {
+      background: #121212;
+      color: #eee;
+    }
+    body.dark textarea, body.dark .entry {
+      background: #1e1e1e;
+      border: 1px solid #444;
+    }
+    body.dark button, body.dark select {
+      background: #6200ea;
+      color: white;
+    }
+
+    body.pastel {
+      background: #fff0f5;
+      color: #333;
+    }
+    body.pastel textarea, body.pastel .entry {
+      background: #ffe4e1;
+      border: 1px solid #f8bbd0;
+    }
+    body.pastel button, body.pastel select {
+      background: #ff69b4;
+      color: white;
+    }
+
+    body.enchanted {
+      background: #f4ecd8;
+      color: #3b2e2a;
+      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    }
+    body.enchanted h1 {
+      color: #6b4226;
+      text-shadow: 2px 2px 4px #caa472;
+      font-family: 'Papyrus', fantasy;
+    }
+    body.enchanted textarea {
+      background: #f9f2e7;
+      border: 2px solid #a67c52;
+      color: #3b2e2a;
+    }
+    body.enchanted .entry {
+      background: #f9f2e7;
+      border: 2px solid #a67c52;
+      box-shadow: 0 0 15px rgba(150,100,50,0.3);
+    }
+    body.enchanted button, body.enchanted select {
+      background: #a67c52;
+      color: #fff7e6;
+    }
+  </style>
+</head>
+<body class="light">
+  <h1>📖 My Diary</h1>
+  
+  <div class="controls">
+    <label>Diary Theme: </label>
+    <select id="theme" onchange="changeTheme()">
+      <option value="light">🌞 Light</option>
+      <option value="dark">🌙 Dark</option>
+      <option value="pastel">🌸 Pastel</option>
+      <option value="enchanted">✨ Enchanted Book</option>
+    </select>
+  </div>
+
+  <div class="controls">
+    <label>Font: </label>
+    <select id="font" onchange="updateTextareaStyle()">
+      <option value="Arial, sans-serif">Arial</option>
+      <option value="'Georgia', serif">Georgia</option>
+      <option value="'Courier New', monospace">Courier New</option>
+      <option value="'Comic Sans MS', cursive">Comic Sans</option>
+      <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino</option>
+    </select>
+
+    <label>Style: </label>
+    <select id="style" onchange="updateTextareaStyle()">
+      <option value="normal">Normal</option>
+      <option value="italic">Italic</option>
+      <option value="bold">Bold</option>
+    </select>
+
+    <label>Text Color: </label>
+    <input type="color" id="textColor" value="#333333" onchange="updateTextareaStyle()">
+  </div>
+
+  <textarea id="entry" placeholder="Write your thoughts here..."></textarea><br>
+  <button onclick="saveEntry()">Save Entry</button>
+  
+  <h2>Past Entries</h2>
+  <div id="entries"></div>
+  
+  <script>
+    const entryArea = document.getElementById("entry");
+    let diary = JSON.parse(localStorage.getItem("diary")) || [];
+
+    function updateTextareaStyle() {
+      const font = document.getElementById("font").value;
+      const style = document.getElementById("style").value;
+      const color = document.getElementById("textColor").value;
+
+      entryArea.style.fontFamily = font;
+      entryArea.style.fontStyle = style === 'italic' ? 'italic' : 'normal';
+      entryArea.style.fontWeight = style === 'bold' ? 'bold' : 'normal';
+      entryArea.style.color = color;
+    }
+
+    function saveEntry() {
+      const text = entryArea.value.trim();
+      if (!text) return alert("Write something first!");
+
+      const font = document.getElementById("font").value;
+      const style = document.getElementById("style").value;
+      const color = document.getElementById("textColor").value;
+
+      const entry = { date: new Date().toLocaleString(), text, font, style, color };
+      diary.unshift(entry);
+      localStorage.setItem("diary", JSON.stringify(diary));
+      entryArea.value = "";
+      showEntries();
+    }
+
+    function showEntries() {
+      const entriesDiv = document.getElementById("entries");
+      entriesDiv.innerHTML = "";
+      diary.forEach((e, index) => {
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <div class="date">${e.date}</div>
+          <div style="
+            font-family:${e.font};
+            font-style:${e.style==='italic'?'italic':'normal'};
+            font-weight:${e.style==='bold'?'bold':'normal'};
+            color:${e.color};
+          ">${e.text}</div>
+          <button onclick="deleteEntry(${index})">❌ Delete</button>
+        `;
+        entriesDiv.appendChild(div);
+      });
+    }
+
+    function deleteEntry(index) {
+      diary.splice(index, 1);
+      localStorage.setItem("diary", JSON.stringify(diary));
+      showEntries();
+    }
+
+    function changeTheme() {
+      const theme = document.getElementById("theme").value;
+      document.body.className = theme;
+      localStorage.setItem("theme", theme);
+    }
+
+    // Load saved diary theme
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.body.className = savedTheme;
+    document.getElementById("theme").value = savedTheme;
+
+    // Initialize textarea style
+    updateTextareaStyle();
+    showEntries();
+  </script>
+</body>
+</html>
