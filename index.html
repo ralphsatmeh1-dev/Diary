@@ -2,77 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Enchanted Diary</title>
+<title>Public Diary</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&family=Georgia&family=Courier+New&family=Comic+Neue&display=swap">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
-body { margin:0; padding:20px; transition: background 0.3s,color 0.3s; }
-h1 { text-align:center; margin-bottom:10px; transition:color 0.3s,text-shadow 0.3s;}
+body { margin:0; padding:20px; font-family:'Roboto', sans-serif; }
+h1 { text-align:center; margin-bottom:10px; }
 .controls { text-align:center; margin-bottom:15px; }
 textarea { width:100%; height:150px; padding:12px; font-size:14px; border-radius:8px; resize:none; }
 button, select, input[type=color] { margin:5px; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:14px; }
-#entries { margin-top:20px; }
-.entry { padding:12px; border-radius:8px; margin-bottom:15px; }
-.date { font-size:12px; opacity:0.7; margin-bottom:5px; }
-
-body.light { background:#fdf6e3; color:#333; }
-body.light textarea, body.light .entry { background:#fff; border:1px solid #ccc; }
-body.light button, body.light select { background:#4caf50; color:white; }
-
-body.dark { background:#121212; color:#eee; }
-body.dark textarea, body.dark .entry { background:#1e1e1e; border:1px solid #444; }
-body.dark button, body.dark select { background:#6200ea; color:white; }
-
-body.pastel { background:#fff0f5; color:#333; }
-body.pastel textarea, body.pastel .entry { background:#ffe4e1; border:1px solid #f8bbd0; }
-body.pastel button, body.pastel select { background:#ff69b4; color:white; }
-
-body.enchanted { background:#f4ecd8; color:#3b2e2a; font-family:'Georgia','serif'; }
-body.enchanted h1 { color:#6b4226; text-shadow:2px 2px 4px #caa472; font-family:'Comic Neue',cursive; }
-body.enchanted textarea { background:#f9f2e7; border:2px solid #a67c52; color:#3b2e2a; }
-body.enchanted .entry { background:#f9f2e7; border:2px solid #a67c52; box-shadow:0 0 15px rgba(150,100,50,0.3); }
-body.enchanted button, body.enchanted select { background:#a67c52; color:#fff7e6; }
+#entryDisplay { margin-top:20px; padding:12px; border-radius:8px; border:1px solid #ccc; min-height:50px; white-space:pre-wrap; word-wrap:break-word; }
 </style>
 </head>
-<body class="light">
-<h1>📖 Enchanted Diary</h1>
+<body>
+<h1>📖 Public Diary</h1>
 
 <div class="controls">
-<label>Theme: </label>
-<select id="theme" onchange="changeTheme()">
-<option value="light">🌞 Light</option>
-<option value="dark">🌙 Dark</option>
-<option value="pastel">🌸 Pastel</option>
-<option value="enchanted">✨ Enchanted Book</option>
-</select>
-</div>
-
-<div class="controls">
-<label>Font: </label>
-<select id="font" onchange="updateTextareaStyle()">
+<label>Font:</label>
+<select id="font" onchange="updateStyle()">
 <option value="'Roboto', sans-serif">Roboto</option>
 <option value="Georgia, serif">Georgia</option>
 <option value="'Courier New', monospace">Courier New</option>
 <option value="'Comic Neue', cursive">Comic Neue</option>
 </select>
 
-<label>Style: </label>
-<select id="style" onchange="updateTextareaStyle()">
+<label>Style:</label>
+<select id="style" onchange="updateStyle()">
 <option value="normal">Normal</option>
 <option value="italic">Italic</option>
 <option value="bold">Bold</option>
 </select>
 
-<label>Text Color: </label>
-<input type="color" id="textColor" value="#333333" onchange="updateTextareaStyle()">
+<label>Text Color:</label>
+<input type="color" id="color" value="#333333" onchange="updateStyle()">
 </div>
 
-<textarea id="entry" placeholder="Write your thoughts here..."></textarea><br>
-<button onclick="saveEntry()">Save Entry</button>
+<textarea id="entry" placeholder="Write your diary entry..."></textarea><br>
+<button onclick="submitEntry()">Submit</button>
 
-<h2>All Entries</h2>
-<div id="entries"></div>
+<h2>Diary Entry</h2>
+<div id="entryDisplay"></div>
 
 <script>
 const firebaseConfig = {
@@ -88,75 +58,49 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const entryArea = document.getElementById("entry");
+const entryDisplay = document.getElementById("entryDisplay");
 
-function updateTextareaStyle() {
-  const font = document.getElementById("font").value;
-  const style = document.getElementById("style").value;
-  const color = document.getElementById("textColor").value;
-
-  entryArea.style.fontFamily = font;
-  entryArea.style.fontStyle = style==='italic'?'italic':'normal';
-  entryArea.style.fontWeight = style==='bold'?'bold':'normal';
-  entryArea.style.color = color;
+function updateStyle() {
+  entryArea.style.fontFamily = document.getElementById("font").value;
+  entryArea.style.fontStyle = document.getElementById("style").value==='italic'?'italic':'normal';
+  entryArea.style.fontWeight = document.getElementById("style").value==='bold'?'bold':'normal';
+  entryArea.style.color = document.getElementById("color").value;
 }
 
-function escapeHTML(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Append entry locally so user sees it immediately
-function appendEntryLocally(e) {
-  const entriesDiv = document.getElementById("entries");
-  const div = document.createElement("div");
-  div.className = "entry";
-  div.innerHTML = `
-    <div class="date">${new Date(e.date).toLocaleString()}</div>
-    <div style="
-      font-family:${e.font};
-      font-style:${e.style==='italic'?'italic':'normal'};
-      font-weight:${e.style==='bold'?'bold':'normal'};
-      color:${e.color};
-    ">${escapeHTML(e.text)}</div>
-  `;
-  entriesDiv.insertBefore(div, entriesDiv.firstChild);
-}
-
-function saveEntry() {
+function submitEntry() {
   const text = entryArea.value.trim();
-  if(!text) return alert("Write something first!");
+  if(!text) return alert("Write something!");
   const entryData = {
     text,
     font: document.getElementById("font").value,
     style: document.getElementById("style").value,
-    color: document.getElementById("textColor").value,
+    color: document.getElementById("color").value,
     date: new Date().toISOString()
   };
-  appendEntryLocally(entryData); // show immediately
-  db.ref('entries').push(entryData); // save to Firebase
+  showEntry(entryData);       // show locally immediately
+  db.ref('latestEntry').set(entryData); // save to Firebase
   entryArea.value = "";
 }
 
-function showEntries(snapshot) {
-  const entriesDiv = document.getElementById("entries");
-  entriesDiv.innerHTML = "";
-  const data = snapshot.val();
-  if(!data) return;
-  Object.keys(data).reverse().forEach(key => {
-    const e = data[key];
-    appendEntryLocally(e);
-  });
+// Display entry safely (no innerHTML)
+function showEntry(e) {
+  entryDisplay.innerHTML = ""; // clear previous
+  const div = document.createElement("div");
+  div.style.fontFamily = e.font;
+  div.style.fontStyle = e.style==='italic'?'italic':'normal';
+  div.style.fontWeight = e.style==='bold'?'bold':'normal';
+  div.style.color = e.color;
+  div.textContent = e.text; // safe text node
+  entryDisplay.appendChild(div);
 }
 
-db.ref('entries').on('value', showEntries);
+// Listen for latest entry from Firebase
+db.ref('latestEntry').on('value', snapshot => {
+  const e = snapshot.val();
+  if(e) showEntry(e);
+});
 
-function changeTheme() {
-  const theme = document.getElementById("theme").value;
-  document.body.className = theme;
-}
-
-updateTextareaStyle();
+updateStyle();
 </script>
 </body>
 </html>
